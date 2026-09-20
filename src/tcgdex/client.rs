@@ -1,7 +1,8 @@
 use serde::de::DeserializeOwned;
 
 use super::error::{TcgDexError, ProblemDetails};
-use super::models::{Card, Set};
+use super::card::{Card, CardBrief};
+use super::set::Set;
 
 pub struct TcgDexClient { client: reqwest::Client, base_url: String }
 
@@ -15,7 +16,8 @@ impl TcgDexClient {
 
     async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, TcgDexError> {
         let url = format!("{}{path}", self.base_url);
-        let resp = reqwest::get(&url).await?;
+        
+        let resp = self.client.get(&url).send().await?;
         let status = resp.status();
         let body = resp.text().await?;
 
@@ -29,9 +31,13 @@ impl TcgDexClient {
         Ok(serde_json::from_str(&body)?)
     }
 
+
     pub async fn get_card(&self, id: &str) -> Result<Card, TcgDexError> {
         self.get(&format!("/cards/{id}")).await
+    }
 
+    pub async fn list_cards(&self, name: &str) -> Result<Vec<CardBrief>, TcgDexError> {
+        self.get(&format!("/cards?name={name}")).await
     }
 
     pub async fn get_set(&self, id: &str) -> Result<Set, TcgDexError> {
@@ -44,5 +50,10 @@ impl TcgDexClient {
 
     pub async fn list_sets(&self) -> Result<Vec<Set>, TcgDexError> {
         self.get("/sets").await
+    }
+
+    pub async fn fetch_image(&self, url: &str) -> Result<Vec<u8>, TcgDexError> {
+        let bytes = self.client.get(url).send().await?.error_for_status()?.bytes().await?;
+        Ok(bytes.to_vec())
     }
 }

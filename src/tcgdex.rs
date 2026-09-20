@@ -1,7 +1,9 @@
 mod client;
-mod models;
+mod set;
+mod card;
 mod error;
 
 pub use client::TcgDexClient;
 pub use error::TcgDexError;
-pub use models::{Card, CardBrief, Set, SetBrief};
+pub use card::{Card, CardBrief, Variant, Attack, Weakness, Ability, Cardmarket, Legal, TcgPlayer, Pricing, TcgPlayerPrice};
+pub use set::{Set, SetBrief};
