@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use super::set::SetBrief;
+// use super::set::SetBrief;
 
 #[derive(Deserialize, Debug)]
 pub struct SerieBrief {

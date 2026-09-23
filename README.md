@@ -26,4 +26,10 @@ cardex search ceruledge
 
 # full detail for one card
 cardex card sv08.5-147
+
+# search for set/s by name
+cardex sets -n prismatic
+
+# full detail for a set
+cardex set sv08.5
 ```
