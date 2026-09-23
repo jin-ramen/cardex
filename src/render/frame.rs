@@ -59,3 +59,25 @@ impl Frame {
         self.row(&format!("{left}{}{right}", " ".repeat(gap)));
     }
 }
+
+/// Lay `left` and `right` out as two columns separated by `gutter` spaces,
+/// centring the shorter column against the taller. Rows where one column
+/// has run out are padded so the other still lines up.
+pub fn beside(left: &[String], right: &[String], gutter: usize) -> Vec<String> {
+    if left.is_empty() {
+        return right.to_vec();
+    }
+    let left_blank = " ".repeat(vis_width(&left[0]));
+    let gap = " ".repeat(gutter);
+    let rows = left.len().max(right.len());
+    let loff = (rows - left.len()) / 2;
+    let roff = (rows - right.len()) / 2;
+
+    (0..rows)
+        .map(|i| {
+            let l = i.checked_sub(loff).and_then(|j| left.get(j)).map(String::as_str).unwrap_or(&left_blank);
+            let r = i.checked_sub(roff).and_then(|j| right.get(j)).map(String::as_str).unwrap_or("");
+            format!("{l}{gap}{r}")
+        })
+        .collect()
+}

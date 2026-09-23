@@ -10,19 +10,24 @@ const PAD_LEFT: usize = 2;
 const NUM_COL: usize = 7;
 
 /// ```text
-///   87 cards matching “charizard” · 31 sets
+///   87 cards · 31 sets
 ///
 ///   ▌ base1 · 1
 ///         4  Charizard  base1-4
 ///   ▌ swsh3 · 3
 ///        20  Charizard VMAX  swsh3-20
 /// ```
-pub fn render_list(w: &mut impl Write, query: &str, cards: &[CardBrief]) -> io::Result<()> {
+/// Print search results to stdout.
+pub fn render_list(cards: &[CardBrief]) -> io::Result<()> {
+    write_list(&mut io::stdout().lock(), cards)
+}
+
+fn write_list(w: &mut impl Write, cards: &[CardBrief]) -> io::Result<()> {
     let margin = " ".repeat(PAD_LEFT);
 
     writeln!(w)?;
     if cards.is_empty() {
-        writeln!(w, "{margin}{}", dim(&format!("No cards matching “{query}”")))?;
+        writeln!(w, "{margin}{}", dim("No cards found"))?;
         writeln!(w)?;
         return Ok(());
     }
@@ -32,7 +37,7 @@ pub fn render_list(w: &mut impl Write, query: &str, cards: &[CardBrief]) -> io::
         w,
         "{margin}{} {}",
         bold(&format!("{} cards", cards.len())),
-        dim(&format!("matching “{query}” · {} sets", groups.len()))
+        dim(&format!("· {} sets", groups.len()))
     )?;
     writeln!(w)?;
 

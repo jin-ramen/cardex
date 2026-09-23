@@ -128,7 +128,21 @@ pub fn variant_badges(v: &Variant) -> String {
     out.join("  ")
 }
 
+/// "Standard ✓  Expanded ✗"
+pub fn legal_badges(standard: bool, expanded: bool) -> String {
+    let tick = |ok: bool| if ok { fg("✓", GREEN) } else { dim("✗") };
+    format!("{} {}  {} {}", dim("Standard"), tick(standard), dim("Expanded"), tick(expanded))
+}
+
 // ── Text measurement ─────────────────────────────────────────────────
+
+/// Terminal width in columns, or `fallback` when it can't be read
+/// (piped output, tests).
+pub fn term_cols(fallback: usize) -> usize {
+    terminal_size::terminal_size()
+        .map(|(terminal_size::Width(w), _)| w as usize)
+        .unwrap_or(fallback)
+}
 
 /// On-screen width, ignoring ANSI escape sequences.
 pub fn vis_width(s: &str) -> usize {

@@ -4,13 +4,13 @@ use std::io::{self, Write};
 
 use image::RgbImage;
 
-use crate::tcgdex::{Ability, Attack, Card, Legal, Weakness};
-use super::frame::Frame;
+use crate::tcgdex::{Ability, Attack, Card, TcgDexClient, Weakness};
+use super::frame::{beside, Frame};
 use super::image as art;
 use super::pricing;
 use super::style::{
-    bar, bold, dim, fg, holo, is_rare, italic, rarity_badge, shade, type_rgb, variant_badges,
-    vis_width, wrap, Rgb, ENERGY_RGB, GOLD, GREEN, TRAINER_RGB,
+    bar, bold, dim, fg, holo, is_rare, italic, legal_badges, rarity_badge, shade, term_cols,
+    type_rgb, variant_badges, wrap, Rgb, ENERGY_RGB, GOLD, TRAINER_RGB,
 };
 
 /// Text width inside the frame (excluding the border and its 1-char padding).
@@ -39,40 +39,32 @@ const GUTTER: usize = 3;
 // Public entry point
 // ───────────────────────────────────────────────────────────────────────
 
-pub fn render(w: &mut impl Write, c: &Card, img: Option<&RgbImage>) -> io::Result<()> {
+/// Fetch the artwork and print the card to stdout. If the art can't be
+/// loaded the card still prints, text-only, with a note on stderr.
+pub async fn render_card(client: &TcgDexClient, c: &Card) -> anyhow::Result<()> {
+    let art = match client.card_art(c).await {
+        Ok(art) => art,
+        Err(e) => {
+            eprintln!("{}", dim(&format!("(no artwork: {e})")));
+            None
+        }
+    };
+    write_card(&mut io::stdout().lock(), c, art.as_ref())?;
+    Ok(())
+}
+
+/// Layout only: art (already decoded) beside a framed info panel.
+fn write_card(w: &mut impl Write, c: &Card, img: Option<&RgbImage>) -> io::Result<()> {
     let inner = inner_width(img.is_some());
     let right = card_lines(c, inner);
     let left = img.map(|img| art::fit(img, ART_ROWS)).unwrap_or_default();
 
     let margin = " ".repeat(PAD_LEFT);
-    let gutter = " ".repeat(GUTTER);
-    // Stand-in for rows where the box runs past the art (or vice versa).
-    let art_blank = left.first().map(|l| " ".repeat(vis_width(l))).unwrap_or_default();
-
-    // Centre the shorter column against the taller one.
-    let rows = left.len().max(right.len());
-    let loff = (rows - left.len()) / 2;
-    let roff = (rows - right.len()) / 2;
-
     for _ in 0..PAD_TOP {
         writeln!(w)?;
     }
-    for i in 0..rows {
-        let l = i
-            .checked_sub(loff)
-            .and_then(|j| left.get(j))
-            .map(String::as_str)
-            .unwrap_or(&art_blank);
-        let r = i
-            .checked_sub(roff)
-            .and_then(|j| right.get(j))
-            .map(String::as_str)
-            .unwrap_or("");
-        if left.is_empty() {
-            writeln!(w, "{margin}{r}")?;
-        } else {
-            writeln!(w, "{margin}{l}{gutter}{r}")?;
-        }
+    for line in beside(&left, &right, GUTTER) {
+        writeln!(w, "{margin}{line}")?;
     }
     for _ in 0..PAD_BOTTOM {
         writeln!(w)?;
@@ -83,9 +75,7 @@ pub fn render(w: &mut impl Write, c: &Card, img: Option<&RgbImage>) -> io::Resul
 /// Box text width that fills the terminal, leaving room for margin,
 /// art, gutter and the frame's own 4 columns.
 fn inner_width(has_art: bool) -> usize {
-    let cols = terminal_size::terminal_size()
-        .map(|(terminal_size::Width(w), _)| w as usize)
-        .unwrap_or(FALLBACK_COLS);
+    let cols = term_cols(FALLBACK_COLS);
     let art = if has_art { art::cols_for(ART_ROWS) + GUTTER } else { 0 };
     cols.saturating_sub(PAD_LEFT + art + 4).clamp(INNER_MIN, INNER_MAX)
 }
@@ -186,7 +176,7 @@ fn card_lines(c: &Card, inner: usize) -> Vec<String> {
             .as_deref()
             .map(|m| format!("{} ", fg(&format!("[{m}]"), GOLD)))
             .unwrap_or_default();
-        let legal = c.legal.as_ref().map(legal_str).unwrap_or_default();
+        let legal = c.legal.as_ref().map(|l| legal_badges(l.standard, l.expanded)).unwrap_or_default();
         let updated = c
             .updated
             .as_deref()
@@ -303,17 +293,6 @@ fn modifiers(ms: &[Weakness]) -> String {
         .map(|m| format!("{}{}", fg("●", type_rgb(&m.weakness_type)), m.value))
         .collect::<Vec<_>>()
         .join(" ")
-}
-
-fn legal_str(l: &Legal) -> String {
-    let tick = |ok: bool| if ok { fg("✓", GREEN) } else { dim("✗") };
-    format!(
-        "{} {}  {} {}",
-        dim("Standard"),
-        tick(l.standard),
-        dim("Expanded"),
-        tick(l.expanded)
-    )
 }
 
 fn accent_for(c: &Card) -> Rgb {

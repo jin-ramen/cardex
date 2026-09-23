@@ -52,4 +52,7 @@ pub enum TcgDexError {
 
     #[error("could not decode TCGdex response")]
     Decode(#[from] serde_json::Error),
+
+    #[error("could not decode image: {0}")]
+    Image(#[from] image::ImageError),
 }
