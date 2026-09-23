@@ -14,8 +14,15 @@ cargo install --path .
 cardex <COMMAND> [OPTIONS]
 
 Commands:
-    search      Seach cards by name
-    card        Show a single card by id
+  card    Show full details for a single card
+  search  Search cards by name, with optional filters
+  set     Show a set and list every card in it
+  sets    List sets by name, all if no name is given
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -R, --region <REGION>  Card region to query (en, fr, de, ja, ...) [default: en]
+  -h, --help             Print help
 ```
 
 ### Examples
