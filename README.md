@@ -4,6 +4,9 @@ A command line Pokemon TCG card searcher written in Rust, backed by the [TCGdex 
 
 ## Install
 ```sh
+# install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
 git clone https://github.com/jin-ramen/cardex.git
 cd cardex
 cargo install --path .
